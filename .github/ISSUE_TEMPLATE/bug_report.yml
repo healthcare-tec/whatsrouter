@@ -1,0 +1,59 @@
+name: Relatar um problema
+description: Algo não funcionou como esperado
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Antes de abrir a issue, confira o guia de problemas comuns em `docs/DEPLOYMENT.md`.
+        Nunca inclua senhas, tokens, números de telefone reais ou conteúdo de conversas.
+  - type: textarea
+    id: descricao
+    attributes:
+      label: O que aconteceu
+      description: Descreva o comportamento observado e o que você esperava.
+    validations:
+      required: true
+  - type: textarea
+    id: passos
+    attributes:
+      label: Como reproduzir
+      placeholder: |
+        1. Configurei ...
+        2. Enviei uma mensagem ...
+        3. Observei que ...
+    validations:
+      required: true
+  - type: dropdown
+    id: provedor
+    attributes:
+      label: Provedor de WhatsApp em uso
+      options:
+        - baileys
+        - webhook (n8n / Cloud API)
+        - mock (demonstração)
+        - não sei
+    validations:
+      required: true
+  - type: input
+    id: versao
+    attributes:
+      label: Versão ou commit
+      placeholder: 0.1.0 / hash do commit / imagem Docker
+    validations:
+      required: false
+  - type: textarea
+    id: ambiente
+    attributes:
+      label: Ambiente
+      description: Sistema operacional, forma de execução (Docker ou Node direto) e provedor de e-mail.
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs relevantes
+      description: Trechos do log do contêiner ou do painel (Histórico). Remova dados pessoais.
+      render: shell
+    validations:
+      required: false

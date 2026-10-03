@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1791049479667,
+      "tag": "0000_yummy_james_howlett",
+      "breakpoints": true
+    }
+  ]
+}

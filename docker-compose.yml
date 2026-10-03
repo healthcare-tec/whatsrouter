@@ -1,0 +1,34 @@
+services:
+  whatsrouter:
+    build: .
+    image: whatsrouter:latest
+    container_name: whatsrouter
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      PORT: 3000
+      DATA_DIR: /app/data
+      DATABASE_PATH: /app/data/whatsrouter.sqlite
+      # Credenciais iniciais do painel (troque a senha depois do primeiro acesso)
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-whatsrouter}
+      SESSION_SECRET: ${SESSION_SECRET:-troque-este-valor-aleatorio}
+      # baileys | webhook | mock
+      WHATSAPP_PROVIDER: ${WHATSAPP_PROVIDER:-baileys}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      # Opcional: chave para transcricao de audio via API compativel com OpenAI
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      # Sessao do WhatsApp, banco SQLite e midias ficam aqui. Faca backup desta pasta.
+      - whatsrouter-data:/app/data
+
+volumes:
+  whatsrouter-data:
+
+# Para desenvolvedores: um servidor SMTP local que apenas grava os e-mails em
+# disco, util para testar sem enviar nada de verdade:
+#
+#   node scripts/dev-smtp.mjs 2525 ./data/smtp-inbox
+#
+# e no painel use SMTP host "host.docker.internal" (ou o IP da maquina) na porta 2525.

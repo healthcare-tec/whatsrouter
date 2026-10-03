@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+dist
+**/dist
+data
+.tmp*
+.git
+.github
+*.log
+.env
+.env.local
+coverage

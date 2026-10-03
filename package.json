@@ -1,0 +1,20 @@
+{
+  "name": "whatsrouter",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Centralizador WhatsApp <-> E-mail: mensagens do WhatsApp sao consolidadas e enviadas ao e-mail do proprietario, que responde por e-mail e o sistema reposta no WhatsApp.",
+  "scripts": {
+    "dev": "pnpm --filter @whatsrouter/server dev",
+    "dev:web": "pnpm --filter @whatsrouter/web dev",
+    "build": "pnpm --filter @whatsrouter/web build && pnpm --filter @whatsrouter/server build",
+    "start": "node server/dist/index.js",
+    "test": "pnpm --filter @whatsrouter/server test",
+    "typecheck": "pnpm --filter @whatsrouter/server typecheck && pnpm --filter @whatsrouter/web typecheck",
+    "db:generate": "pnpm --filter @whatsrouter/server db:generate"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@9.12.0"
+}

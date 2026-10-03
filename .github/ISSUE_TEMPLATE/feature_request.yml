@@ -1,0 +1,38 @@
+name: Sugerir uma melhoria
+description: Ideia de funcionalidade ou mudança de comportamento
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Já existe um roadmap em `docs/ROADMAP.md` — vale conferir se a ideia já está lá.
+        Mudanças de escopo devem atualizar também `docs/REQUIREMENTS.md`.
+  - type: textarea
+    id: problema
+    attributes:
+      label: Qual problema isso resolve
+      description: Descreva a situação real em que o sistema deixa a desejar.
+    validations:
+      required: true
+  - type: textarea
+    id: solucao
+    attributes:
+      label: Solução proposta
+      description: Como você imagina o comportamento ideal, inclusive na interface do painel.
+    validations:
+      required: true
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas consideradas
+    validations:
+      required: false
+  - type: checkboxes
+    id: impacto
+    attributes:
+      label: Impacto
+      options:
+        - label: Afeta a configuração existente (precisa atualizar docs/CONFIGURATION.md)
+        - label: Afeta a estrutura do banco (precisa de migração)
+        - label: Afeta a interface de provedores de WhatsApp
+        - label: Posso contribuir com um Pull Request
