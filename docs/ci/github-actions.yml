@@ -1,0 +1,55 @@
+# Pipeline de integração contínua do WhatsRouter.
+#
+# Para ativar: copie este arquivo para `.github/workflows/ci.yml` e faça o commit.
+# Ele não fica diretamente em `.github/workflows/` porque a integração que
+# publicou a versão inicial não tinha a permissão `workflows` do GitHub.
+#
+#   mkdir -p .github/workflows && cp docs/ci/github-actions.yml .github/workflows/ci.yml
+#
+# O conteúdo é exatamente o que se espera de um workflow do GitHub Actions:
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Checagem de tipos (servidor)
+        run: pnpm --filter @whatsrouter/server typecheck
+
+      - name: Checagem de tipos (painel)
+        run: pnpm --filter @whatsrouter/web typecheck
+
+      - name: Testes automatizados
+        run: pnpm --filter @whatsrouter/server test
+
+      - name: Build do painel e do servidor
+        run: pnpm build
+
+      - name: Teste de fumaca ponta a ponta
+        run: bash scripts/smoke-test.sh
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build da imagem Docker
+        run: docker build -t whatsrouter:ci .

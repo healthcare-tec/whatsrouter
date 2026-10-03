@@ -48,6 +48,17 @@ pnpm build
 bash scripts/smoke-test.sh
 ```
 
+## Integração contínua
+
+O pipeline do GitHub Actions está versionado em `docs/ci/github-actions.yml` (ele não pôde ser publicado em `.github/workflows/` na versão inicial por falta da permissão `workflows` da integração). Para ativá-lo:
+
+```bash
+mkdir -p .github/workflows && cp docs/ci/github-actions.yml .github/workflows/ci.yml
+git add .github/workflows/ci.yml && git commit -m "ci: ativar pipeline"
+```
+
+Ele roda checagem de tipos, testes, build e o teste de fumaça ponta a ponta, além de validar a imagem Docker.
+
 ## Fluxo de Pull Request
 
 1. Faça um fork (ou use uma branch no próprio repositório, se tiver acesso).

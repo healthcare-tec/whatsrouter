@@ -115,6 +115,7 @@ Se você enviar estes comandos no WhatsApp (na conversa com o contato ou na conv
 | `server/` | API, painel de configuração, pipeline de mensagens, provedores, e-mail (TypeScript) |
 | `web/` | Painel em React + Vite + Tailwind |
 | `docs/` | Requisitos, arquitetura, configuração, implantação, provedores e roadmap |
+| `docs/ci/github-actions.yml` | Pipeline de CI pronto: copie para `.github/workflows/ci.yml` para ativar |
 | `scripts/` | Servidor SMTP de desenvolvimento e teste de fumaça ponta a ponta |
 | `server/drizzle/` | Migrações do banco SQLite |
 
