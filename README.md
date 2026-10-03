@@ -12,6 +12,14 @@
 
 > **Procurando por:** encaminhar WhatsApp para e-mail, responder WhatsApp por e-mail, ponte WhatsApp ↔ e-mail, gateway de mensagens auto-hospedado, alternativa sem custo por mensagem — este projeto existe para isso.
 
+## Telas
+
+| Status, fila e pausa | Conversas por contato |
+| --- | --- |
+| ![Painel de status do WhatsRouter](docs/assets/screenshots/02-status.png) | ![Lista de conversas com histórico e ações](docs/assets/screenshots/03-conversas.png) |
+
+![Configurações do e-mail do sistema, janelas de consolidação e transcrição](docs/assets/screenshots/04-configuracoes.png)
+
 ---
 
 ## O que ele faz
@@ -143,3 +151,4 @@ Ideias em aberto no [roadmap](docs/ROADMAP.md): multi-conta (vários números e 
 ## Licença
 
 [MIT](LICENSE) © 2026 WhatsRouter contributors
+[English version](README.en.md) · [Perguntas frequentes](docs/FAQ.md) · [Arquitetura](docs/ARCHITECTURE.md) · [Configuração](docs/CONFIGURATION.md) · [Implantação](docs/DEPLOYMENT.md) · [Provedores](docs/PROVIDERS.md) · [Roadmap](docs/ROADMAP.md) · [Divulgação](docs/DISCOVERABILITY.md)

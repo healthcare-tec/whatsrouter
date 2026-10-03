@@ -69,3 +69,11 @@ Full details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Documentation is currently in Portuguese; English translations are a great first contribution.
 
 Licensed under the [MIT licence](LICENSE).
+
+## Screenshots
+
+| Status, queue and pause | Per-contact conversations |
+| --- | --- |
+| ![WhatsRouter status panel](docs/assets/screenshots/02-status.png) | ![Conversation list with history and actions](docs/assets/screenshots/03-conversas.png) |
+
+![System mailbox, consolidation windows and transcription settings](docs/assets/screenshots/04-configuracoes.png)
