@@ -1,8 +1,16 @@
 # WhatsRouter
 
+[![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-25D366.svg)](LICENSE)
+[![PRs bem-vindos](https://img.shields.io/badge/PRs-bem--vindos-blue.svg)](CONTRIBUTING.md)
+[![Docker](https://img.shields.io/badge/docker-compose-2496ED.svg)](docker-compose.yml)
+[![Node.js 22+](https://img.shields.io/badge/node-22%2B-339933.svg)](package.json)
+[![Auto-hospedado](https://img.shields.io/badge/self--hosted-sim-success.svg)](docs/DEPLOYMENT.md)
+
 **Centralizador de mensagens entre WhatsApp e e-mail.** As mensagens que chegam no seu WhatsApp são consolidadas e enviadas para o seu e-mail; você responde o e-mail e a resposta volta como mensagem no WhatsApp — mantendo uma conversa por contato.
 
-[English version](README.en.md) · [Requisitos](docs/REQUIREMENTS.md) · [Arquitetura](docs/ARCHITECTURE.md) · [Configuração](docs/CONFIGURATION.md) · [Implantação](docs/DEPLOYMENT.md) · [Provedores](docs/PROVIDERS.md) · [Roadmap](docs/ROADMAP.md)
+[English version](README.en.md) · [Perguntas frequentes](docs/FAQ.md) · [Requisitos](docs/REQUIREMENTS.md) · [Arquitetura](docs/ARCHITECTURE.md) · [Configuração](docs/CONFIGURATION.md) · [Implantação](docs/DEPLOYMENT.md) · [Provedores](docs/PROVIDERS.md) · [Roadmap](docs/ROADMAP.md)
+
+> **Procurando por:** encaminhar WhatsApp para e-mail, responder WhatsApp por e-mail, ponte WhatsApp ↔ e-mail, gateway de mensagens auto-hospedado, alternativa sem custo por mensagem — este projeto existe para isso.
 
 ---
 

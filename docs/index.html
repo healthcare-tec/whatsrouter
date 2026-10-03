@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>WhatsRouter — ponte WhatsApp ↔ e-mail auto-hospedada (open source)</title>
+    <meta
+      name="description"
+      content="Centralizador open source que encaminha mensagens do WhatsApp para o seu e-mail e envia suas respostas de volta ao WhatsApp. Auto-hospedado, com Docker e SQLite, suporte a grupos, transcrição de áudio e modo automático."
+    />
+    <meta
+      name="keywords"
+      content="whatsapp para email, encaminhar whatsapp para email, responder whatsapp por email, whatsapp email bridge, whatsapp email gateway, self-hosted, open source, baileys, imap, smtp, n8n, docker, sqlite, automação whatsapp"
+    />
+    <meta name="author" content="WhatsRouter contributors" />
+    <link rel="canonical" href="https://healthcare-tec.github.io/whatsrouter/" />
+    <meta name="robots" content="index, follow" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="WhatsRouter — ponte WhatsApp ↔ e-mail auto-hospedada" />
+    <meta
+      property="og:description"
+      content="Receba as mensagens do WhatsApp no seu e-mail e responda por lá: a resposta volta como mensagem no WhatsApp. Open source, Docker + SQLite, uma conversa por contato."
+    />
+    <meta property="og:url" content="https://healthcare-tec.github.io/whatsrouter/" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="WhatsRouter — ponte WhatsApp ↔ e-mail auto-hospedada" />
+    <meta
+      name="twitter:description"
+      content="Encaminhe o WhatsApp para o e-mail, responda por e-mail e a resposta volta ao WhatsApp. Open source, auto-hospedado."
+    />
+
+    <style>
+      :root {
+        --zap: #25d366;
+        --zap-dark: #15803d;
+        --ink: #0f172a;
+        --muted: #5b6577;
+        --line: #e2e8f0;
+        --bg: #f8fafc;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+        line-height: 1.6;
+      }
+      a { color: var(--zap-dark); }
+      .wrap { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+      header.hero {
+        background: linear-gradient(150deg, #0b1a12 0%, #123322 55%, #14532d 100%);
+        color: #fff;
+        padding: 72px 0 64px;
+      }
+      .hero h1 { font-size: clamp(1.9rem, 4.5vw, 2.9rem); margin: 0 0 14px; line-height: 1.15; }
+      .hero p.lead { font-size: clamp(1rem, 2.2vw, 1.2rem); color: #d5e8dc; max-width: 720px; margin: 0 0 26px; }
+      .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 26px; }
+      .badge {
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-size: 0.8rem;
+        color: #eafaf0;
+      }
+      .cta { display: flex; flex-wrap: wrap; gap: 12px; }
+      .btn {
+        display: inline-block;
+        padding: 12px 20px;
+        border-radius: 10px;
+        font-weight: 600;
+        text-decoration: none;
+        font-size: 0.95rem;
+      }
+      .btn-primary { background: var(--zap); color: #06281a; }
+      .btn-ghost { border: 1px solid rgba(255, 255, 255, 0.45); color: #fff; }
+      main { padding: 56px 0 24px; }
+      h2 { font-size: 1.5rem; margin: 0 0 18px; }
+      h3 { font-size: 1.05rem; margin: 0 0 6px; }
+      section { margin-bottom: 52px; }
+      .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+      .card {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 20px;
+      }
+      .card p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+      ol.steps { counter-reset: step; list-style: none; padding: 0; margin: 0; }
+      ol.steps li {
+        counter-increment: step;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 16px 18px 16px 62px;
+        position: relative;
+        margin-bottom: 12px;
+      }
+      ol.steps li::before {
+        content: counter(step);
+        position: absolute;
+        left: 16px;
+        top: 16px;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--zap);
+        color: #06281a;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      pre {
+        background: #0f172a;
+        color: #e6edf3;
+        padding: 16px 18px;
+        border-radius: 12px;
+        overflow-x: auto;
+        font-size: 0.88rem;
+      }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.93rem; background: #fff; }
+      th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+      th { color: var(--muted); font-weight: 600; }
+      details {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px 18px;
+        margin-bottom: 10px;
+      }
+      summary { font-weight: 600; cursor: pointer; }
+      details p { color: var(--muted); margin: 10px 0 0; }
+      footer { border-top: 1px solid var(--line); padding: 28px 0 48px; color: var(--muted); font-size: 0.9rem; }
+      .note { font-size: 0.88rem; color: var(--muted); }
+    </style>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "WhatsRouter",
+        "applicationCategory": "CommunicationApplication",
+        "operatingSystem": "Linux, macOS, Windows (Docker)",
+        "description": "Centralizador open source que encaminha mensagens do WhatsApp para o e-mail do proprietário e envia as respostas por e-mail de volta ao WhatsApp, com uma conversa por contato, consolidação de mensagens, transcrição de áudio e pausa automática quando o dono assume a conversa.",
+        "softwareVersion": "0.1.0",
+        "license": "https://opensource.org/licenses/MIT",
+        "codeRepository": "https://github.com/healthcare-tec/whatsrouter",
+        "programmingLanguage": "TypeScript",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "BRL" },
+        "keywords": "whatsapp para email, encaminhar whatsapp para email, responder whatsapp por email, whatsapp email bridge, self-hosted, open source, baileys, imap, smtp"
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Como encaminhar mensagens do WhatsApp para o e-mail?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Com o WhatsRouter você conecta um número de WhatsApp, informa o e-mail do sistema e o seu e-mail no painel. As mensagens recebidas são consolidadas por contato (janela de 2 minutos em conversas e 30 minutos em grupos) e enviadas para a sua caixa de entrada."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Dá para responder o WhatsApp pelo e-mail?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Sim. Cada notificação chega com um endereço de resposta exclusivo da conversa (conv+token@seudominio). Ao responder normalmente no seu cliente de e-mail, o WhatsRouter lê a mensagem por IMAP e a envia como mensagem de texto no WhatsApp do contato."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "O WhatsRouter é gratuito e open source?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Sim. É um projeto de código aberto sob licença MIT, publicado no GitHub em healthcare-tec/whatsrouter, e roda na sua própria infraestrutura com Docker e SQLite."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Preciso de um número dedicado de WhatsApp?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "O projeto foi pensado para o seu número pessoal: quando você responde pelo celular, o sistema pausa os e-mails daquela conversa automaticamente. Ainda assim, um número dedicado é recomendado, porque a conexão padrão usa o protocolo não oficial do WhatsApp Web."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "As mensagens e áudios ficam privados?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Sim. O sistema roda na sua máquina e os dados ficam em um volume local com SQLite. Nada é enviado para serviços externos, exceto os e-mails para o seu próprio endereço e, se você habilitar, a transcrição de áudio (que também pode usar um comando local, como o whisper.cpp)."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Funciona com grupos e áudios?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Grupos entram no fluxo com uma janela própria de consolidação de 30 minutos. Áudios são transcritos automaticamente e as mídias (imagens, vídeos e documentos) são anexadas ao e-mail."
+            }
+          }
+        ]
+      }
+    </script>
+  </head>
+
+  <body>
+    <header class="hero">
+      <div class="wrap">
+        <div class="badges">
+          <span class="badge">Open source · MIT</span>
+          <span class="badge">Auto-hospedado</span>
+          <span class="badge">Docker + SQLite</span>
+          <span class="badge">Sem custo por mensagem</span>
+        </div>
+        <h1>WhatsRouter — suas mensagens do WhatsApp no e-mail, e suas respostas de volta ao WhatsApp</h1>
+        <p class="lead">
+          Um centralizador open source: o que chega no seu WhatsApp é consolidado por contato e enviado para a sua caixa
+          de entrada. Você responde o e-mail e a resposta segue como mensagem no WhatsApp — como se você estivesse no
+          celular. Quando você assume a conversa, o sistema para de te notificar sozinho.
+        </p>
+        <div class="cta">
+          <a class="btn btn-primary" href="https://github.com/healthcare-tec/whatsrouter">Ver o projeto no GitHub</a>
+          <a class="btn btn-ghost" href="#instalar">Como instalar</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section id="como-funciona">
+        <h2>Como funciona</h2>
+        <ol class="steps">
+          <li><strong>Modo automático:</strong> quem escreve recebe um aviso de que as mensagens serão encaminhadas por e-mail e respondidas quando possível — no máximo uma vez a cada 24 h por contato.</li>
+          <li><strong>Consolidação:</strong> mensagens do mesmo contato dentro da janela (2 min em conversas, 30 min em grupos) viram um único e-mail, com o contexto recente e as mídias anexadas.</li>
+          <li><strong>Resposta por e-mail:</strong> você responde normalmente; o sistema identifica o contato pelo endereço da conversa e responde no WhatsApp, mantendo o mesmo fio.</li>
+          <li><strong>Pausa automática:</strong> se você responder pelo celular, aquela conversa fica em pausa (padrão 30 min) e o que chegar nesse intervalo é enviado depois, rotulado como “mensagens durante a pausa”.</li>
+        </ol>
+      </section>
+
+      <section id="recursos">
+        <h2>O que vem pronto</h2>
+        <div class="grid">
+          <div class="card"><h3>Uma conversa por contato</h3><p>Cada contato tem seu próprio fio de e-mail, com endereço de resposta exclusivo — nada de misturar assuntos.</p></div>
+          <div class="card"><h3>Grupos, áudio e anexos</h3><p>Grupos com janela própria de 30 minutos, transcrição de áudios e mídias anexadas respeitando um limite configurável.</p></div>
+          <div class="card"><h3>Controle total</h3><p>Painel web com pausa global, pausa por contato, envio imediato, bloqueios e histórico de tudo o que foi enviado.</p></div>
+          <div class="card"><h3>Provedor plugável</h3><p>Baileys hoje; webhook pronto para n8n ou para a Cloud API oficial da Meta amanhã, sem reescrever o sistema.</p></div>
+          <div class="card"><h3>Comandos no WhatsApp</h3><p>!pausar, !retomar, !retomar-tudo, !status e !ajuda direto na conversa.</p></div>
+          <div class="card"><h3>Privacidade</h3><p>Roda na sua máquina, com SQLite local. Nenhum serviço de terceiros no caminho, exceto o seu próprio e-mail.</p></div>
+        </div>
+      </section>
+
+      <section id="instalar">
+        <h2>Instalação em três comandos</h2>
+        <pre><code>git clone https://github.com/healthcare-tec/whatsrouter.git
+cd whatsrouter &amp;&amp; cp .env.example .env
+docker compose up -d --build</code></pre>
+        <p class="note">
+          Abra <code>http://localhost:3000</code>, entre com <code>admin</code> / <code>whatsrouter</code>, configure o
+          e-mail do sistema (há presets para mail.org/mail.com, Gmail, Outlook e Zoho), informe o seu e-mail e leia o QR
+          Code com o WhatsApp. Requisitos: Docker e um servidor Linux, macOS ou Windows.
+        </p>
+      </section>
+
+      <section id="comparacao">
+        <h2>Para quem faz sentido</h2>
+        <table>
+          <thead>
+            <tr><th>Se você quer…</th><th>WhatsRouter resolve?</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Atender o WhatsApp sem ficar preso ao celular</td><td>Sim — a fila chega no e-mail que você já usa.</td></tr>
+            <tr><td>Guardar o histórico das conversas num lugar só seu</td><td>Sim — banco local e mídias em disco.</td></tr>
+            <tr><td>Não pagar por mensagem nem por assento</td><td>Sim — sem custo por conversa.</td></tr>
+            <tr><td>Automatizar com n8n ou Cloud API oficial</td><td>Sim — provedor webhook pronto para esse caminho.</td></tr>
+            <tr><td>Substituir um CRM completo</td><td>Não — o foco é a ponte WhatsApp ↔ e-mail.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="faq">
+        <h2>Perguntas frequentes</h2>
+        <details open>
+          <summary>Como encaminhar mensagens do WhatsApp para o e-mail?</summary>
+          <p>Conecte um número, informe o e-mail do sistema e o seu e-mail no painel. As mensagens são consolidadas por contato e enviadas para a sua caixa de entrada.</p>
+        </details>
+        <details>
+          <summary>Dá para responder o WhatsApp pelo e-mail?</summary>
+          <p>Sim. A notificação chega com um endereço de resposta exclusivo da conversa; ao responder, o sistema lê a mensagem por IMAP e a envia ao contato no WhatsApp.</p>
+        </details>
+        <details>
+          <summary>É gratuito e open source?</summary>
+          <p>Sim: licença MIT, código aberto no GitHub, rodando na sua infraestrutura com Docker e SQLite.</p>
+        </details>
+        <details>
+          <summary>Preciso de um número dedicado?</summary>
+          <p>Não é obrigatório — há pausa automática quando você responde pelo celular. Mas um número dedicado é recomendado, porque a conexão padrão usa o protocolo não oficial do WhatsApp Web.</p>
+        </details>
+        <details>
+          <summary>Meus dados ficam privados?</summary>
+          <p>Tudo fica em um volume local. Se a transcrição de áudio usar um comando local (whisper.cpp), nada sai da sua máquina.</p>
+        </details>
+        <details>
+          <summary>Funciona com grupos e áudios?</summary>
+          <p>Sim: grupos com janela de 30 minutos, áudios transcritos e mídias anexadas ao e-mail.</p>
+        </details>
+      </section>
+
+      <section>
+        <h2>English summary</h2>
+        <p>
+          <strong>WhatsRouter</strong> is a free, self-hosted, open-source <em>WhatsApp to e-mail bridge</em>: incoming
+          WhatsApp messages are consolidated per contact and delivered to your inbox, and your e-mail replies are sent
+          back as WhatsApp messages. It ships with an admin panel, per-contact e-mail threads, group support, audio
+          transcription, attachments and an automatic pause whenever you take over a chat. Runs with Docker and SQLite.
+          MIT licensed.
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <p>
+          <a href="https://github.com/healthcare-tec/whatsrouter">GitHub</a> ·
+          <a href="https://github.com/healthcare-tec/whatsrouter/blob/main/README.md">README</a> ·
+          <a href="https://github.com/healthcare-tec/whatsrouter/blob/main/docs/REQUIREMENTS.md">Requisitos</a> ·
+          <a href="https://github.com/healthcare-tec/whatsrouter/blob/main/CONTRIBUTING.md">Contribuir</a>
+        </p>
+        <p class="note">
+          Projeto independente, sem vínculo com o WhatsApp/Meta. A conexão padrão usa o protocolo do WhatsApp Web (não
+          oficial); use com consciência, de preferência em um número dedicado. Licença MIT.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

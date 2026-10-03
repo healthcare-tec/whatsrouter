@@ -3,6 +3,30 @@
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
+  "homepage": "https://github.com/healthcare-tec/whatsrouter#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/healthcare-tec/whatsrouter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/healthcare-tec/whatsrouter/issues"
+  },
+  "keywords": [
+    "whatsapp",
+    "email",
+    "bridge",
+    "gateway",
+    "whatsapp-to-email",
+    "email-to-whatsapp",
+    "self-hosted",
+    "baileys",
+    "imap",
+    "smtp",
+    "n8n",
+    "docker",
+    "sqlite",
+    "automation"
+  ],
   "description": "Centralizador WhatsApp <-> E-mail: mensagens do WhatsApp sao consolidadas e enviadas ao e-mail do proprietario, que responde por e-mail e o sistema reposta no WhatsApp.",
   "scripts": {
     "dev": "pnpm --filter @whatsrouter/server dev",

@@ -1,8 +1,15 @@
 # WhatsRouter
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-25D366.svg)](LICENSE)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](CONTRIBUTING.md)
+[![Docker](https://img.shields.io/badge/docker-compose-2496ED.svg)](docker-compose.yml)
+[![Self-hosted](https://img.shields.io/badge/self--hosted-yes-success.svg)](docs/DEPLOYMENT.md)
+
 **A WhatsApp ↔ e-mail message router.** Incoming WhatsApp messages are consolidated and delivered to your inbox; you reply to the e-mail and the reply is sent back as a WhatsApp message — one e-mail thread per contact.
 
 [Versão em português](README.md) · [Architecture](docs/ARCHITECTURE.md) · [Requirements (pt-BR)](docs/REQUIREMENTS.md)
+
+> **Looking for:** forward WhatsApp messages to e-mail, reply to WhatsApp from your inbox, a self-hosted WhatsApp ↔ e-mail bridge, or a no-per-message-cost email gateway — that is exactly what this project does.
 
 ---
 
