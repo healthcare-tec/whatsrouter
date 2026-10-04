@@ -148,6 +148,8 @@ export function createRoutes(ctx: RoutesContext): Router {
   /* ------------------------------------------------------------------ */
 
   router.get('/settings', requireAuth, (_req, res) => {
+    const addressInfo = listenInfo();
+    const running = ctx.runningServer();
     res.json({
       values: settingsForPanel(),
       defaults: SETTING_DEFAULTS,
@@ -158,7 +160,12 @@ export function createRoutes(ctx: RoutesContext): Router {
       transcriptionPresetNames: Object.keys(TRANSCRIPTION_PRESETS),
       transcriptionDriver: resolveDriver(getConfig()),
       transcriptionDriverLabel: describeDriver(resolveDriver(getConfig())),
-      server: { ...listenInfo(), warnings: listenWarnings(listenInfo()) },
+      server: {
+        ...addressInfo,
+        warnings: listenWarnings(addressInfo),
+        running,
+        pendingRestart: addressInfo.host !== running.host || addressInfo.port !== running.port
+      },
       envProvider: env.WHATSAPP_PROVIDER
     });
   });

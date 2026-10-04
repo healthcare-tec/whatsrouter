@@ -160,6 +160,8 @@ echo "$QR_RESPONSE" | grep -q 'nao gera QR Code' || { echo "FALHA: QR deveria se
 SETTINGS_JSON="$(curl -fsS -b "$JAR" "http://127.0.0.1:$PORT/api/settings")"
 echo "$SETTINGS_JSON" | grep -q 'transcriptionPresetNames' || { echo "FALHA: presets de transcricao ausentes"; exit 1; }
 echo "$SETTINGS_JSON" | grep -q 'server' || { echo "FALHA: informacoes de rede ausentes"; exit 1; }
+echo "$SETTINGS_JSON" | grep -q '"running"' || { echo "FALHA: /api/settings sem o endereco em uso"; exit 1; }
+echo "$SETTINGS_JSON" | grep -q 'transcriptionDriverLabel' || { echo "FALHA: /api/settings sem o rotulo do motor de transcricao"; exit 1; }
 
 echo
 echo "SUCESSO: fluxo completo verificado."

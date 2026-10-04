@@ -478,11 +478,11 @@ export default function Settings() {
               <div className="mt-2 text-slate-600">
                 Escutando agora em{' '}
                 <strong>
-                  {serverInfo.running.host}:{serverInfo.running.port}
+                  {serverInfo.running?.host ?? serverInfo.host}:{serverInfo.running?.port ?? serverInfo.port}
                 </strong>
                 {serverInfo.pendingRestart ? ' - ha alteracao salva aguardando reinicio' : ''}
               </div>
-              {serverInfo.warnings.map((warning) => (
+              {(serverInfo.warnings ?? []).map((warning) => (
                 <p key={warning} className="mt-2 text-amber-700">
                   {warning}
                 </p>
