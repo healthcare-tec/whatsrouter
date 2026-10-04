@@ -11,9 +11,21 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PORT="${SMOKE_PORT:-3211}"
-SMTP_PORT="${SMOKE_SMTP_PORT:-2526}"
-WHISPER_PORT="${SMOKE_WHISPER_PORT:-9010}"
+# Se a porta padrao estiver ocupada (execucao anterior, outro servico), usa a
+# proxima livre, para o teste nao falhar por motivo alheio ao projeto.
+port_in_use() { (exec 3<>"/dev/tcp/127.0.0.1/$1") >/dev/null 2>&1; }
+pick_port() {
+  local port="$1" tries=0
+  while port_in_use "$port" && [ "$tries" -lt 50 ]; do
+    port=$((port + 1))
+    tries=$((tries + 1))
+  done
+  echo "$port"
+}
+
+PORT="$(pick_port "${SMOKE_PORT:-3211}")"
+SMTP_PORT="$(pick_port "${SMOKE_SMTP_PORT:-2526}")"
+WHISPER_PORT="$(pick_port "${SMOKE_WHISPER_PORT:-9010}")"
 WORK="$(mktemp -d)"
 LOG="$WORK/server.log"
 SMTP_LOG="$WORK/smtp.log"
