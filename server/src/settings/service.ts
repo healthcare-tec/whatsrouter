@@ -8,6 +8,11 @@ import { settings } from '../db/schema.js';
  * de ambiente.
  */
 export const SETTING_DEFAULTS: Record<string, string> = {
+  // --- Rede e acesso -------------------------------------------------------
+  'server.host': '', // vazio = usa HOST do ambiente (padrao 0.0.0.0)
+  'server.port': '', // vazio = usa PORT do ambiente
+  'server.public_url': '', // ex.: https://router.seudominio.com
+
   // --- Aviso de modo automatico -------------------------------------------
   'auto_reply.enabled': 'true',
   'auto_reply.text':
@@ -23,10 +28,12 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   // --- Anexos e transcricao ------------------------------------------------
   'attachments.max_mb': '20',
   'transcription.enabled': 'true',
-  'transcription.provider': 'auto', // auto | openai | command | none
+  'transcription.provider': 'auto', // auto | service | openai | command | none
   'transcription.model': 'whisper-1',
   'transcription.api_key': '',
   'transcription.base_url': '',
+  // Servico local compativel com OpenAI (faster-whisper-server, whisper.cpp server...)
+  'transcription.service_url': '',
   'transcription.command': '', // ex.: whisper-cli -f {file} -otxt -of {out}
 
   // --- E-mail do sistema ---------------------------------------------------
@@ -171,6 +178,7 @@ export interface AppConfig {
     model: string;
     apiKey: string;
     baseUrl: string;
+    serviceUrl: string;
     command: string;
   };
   mail: {
@@ -225,6 +233,7 @@ export function getConfig(): AppConfig {
       model: getSetting('transcription.model') || 'whisper-1',
       apiKey: getSetting('transcription.api_key'),
       baseUrl: getSetting('transcription.base_url'),
+      serviceUrl: getSetting('transcription.service_url'),
       command: getSetting('transcription.command')
     },
     mail: {
@@ -303,6 +312,44 @@ export const MAIL_PRESETS: Record<string, Record<string, string>> = {
 
 export function applyMailPreset(name: string): boolean {
   const preset = MAIL_PRESETS[name];
+  if (!preset) return false;
+  setSettings(preset);
+  return true;
+}
+
+/**
+ * Presets de transcricao. O terceiro caminho (`Servico local`) sobe um
+ * servidor compativel com OpenAI na propria maquina — sem enviar audio para
+ * fora e sem depender de comando externo.
+ */
+export const TRANSCRIPTION_PRESETS: Record<string, Record<string, string>> = {
+  'Servico local (faster-whisper)': {
+    'transcription.enabled': 'true',
+    'transcription.provider': 'service',
+    'transcription.service_url': 'http://127.0.0.1:9000/v1',
+    'transcription.model': 'small'
+  },
+  'Servico local (no Docker)': {
+    'transcription.enabled': 'true',
+    'transcription.provider': 'service',
+    'transcription.service_url': 'http://whisper:8000/v1',
+    'transcription.model': 'small'
+  },
+  'OpenAI (nuvem)': {
+    'transcription.enabled': 'true',
+    'transcription.provider': 'openai',
+    'transcription.base_url': 'https://api.openai.com/v1',
+    'transcription.model': 'whisper-1'
+  },
+  'Comando local (whisper.cpp)': {
+    'transcription.enabled': 'true',
+    'transcription.provider': 'command',
+    'transcription.command': 'whisper-cli -f {file} -otxt -of {out}'
+  }
+};
+
+export function applyTranscriptionPreset(name: string): boolean {
+  const preset = TRANSCRIPTION_PRESETS[name];
   if (!preset) return false;
   setSettings(preset);
   return true;

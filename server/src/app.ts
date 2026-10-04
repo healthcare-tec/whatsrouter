@@ -22,12 +22,19 @@ export interface WhatsRouterApp {
   scheduler: ConsolidationScheduler;
   mailReader: MailReader;
   reloadEverything: () => Promise<void>;
+  /** Informa ao painel em que endereco o servidor realmente esta escutando. */
+  setRunningAddress: (host: string, port: number) => void;
+  /** Registra o que fazer quando o painel pede reinicio. */
+  onRestartRequested: (handler: () => void) => void;
   shutdown: () => Promise<void>;
 }
 
 export async function createApp(): Promise<WhatsRouterApp> {
   initDb();
   ensureAdminUser();
+
+  const running = { host: env.HOST, port: env.PORT };
+  let restartHandler: (() => void) | null = null;
 
   const provider = await providerManager.init();
   const getProvider = () => providerManager.currentOrNull();
@@ -71,6 +78,11 @@ export async function createApp(): Promise<WhatsRouterApp> {
       if (current instanceof MockProvider) {
         current.simulateInbound(payload as never);
       }
+    },
+    runningServer: () => ({ ...running }),
+    restartServer: () => {
+      if (restartHandler) restartHandler();
+      else log.warn('Reinicio solicitado, mas nenhum supervisor foi registrado; encerrando mesmo assim.');
     }
   });
 
@@ -103,6 +115,13 @@ export async function createApp(): Promise<WhatsRouterApp> {
     scheduler,
     mailReader,
     reloadEverything,
+    setRunningAddress: (host, port) => {
+      running.host = host;
+      running.port = port;
+    },
+    onRestartRequested: (handler) => {
+      restartHandler = handler;
+    },
     shutdown: async () => {
       scheduler.stop();
       await mailReader.stop();

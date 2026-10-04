@@ -194,6 +194,59 @@ export class BaileysProvider extends BaseProvider {
     this.emitStatus(this.status());
   }
 
+  /**
+   * Gera um QR Code novo sob demanda (botao do painel). Se a sessao ja esta
+   * conectada nao ha o que parear; caso contrario a conexao e reiniciada para
+   * que o WhatsApp envie um QR novo.
+   */
+  async requestQr(): Promise<ProviderStatus> {
+    if (this.state === 'connected' && this.sock) return this.status();
+
+    this.qrDataUrl = undefined;
+    this.qrText = undefined;
+    this.lastError = undefined;
+    await this.restartSession();
+    return this.status();
+  }
+
+  /**
+   * Codigo de pareamento de 8 digitos, alternativa ao QR Code: o usuario
+   * digita o codigo no celular (Aparelhos conectados > Conectar com numero).
+   */
+  async pairingCode(phone: string): Promise<string> {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < 10) {
+      throw new Error('informe o telefone com DDI e DDD, por exemplo 5511999999999');
+    }
+
+    if (!this.sock) await this.start();
+    const socket = this.sock as unknown as { requestPairingCode?: (value: string) => Promise<string> } | null;
+    if (!socket?.requestPairingCode) {
+      throw new Error('a versao instalada do Baileys nao suporta codigo de pareamento; use o QR Code');
+    }
+
+    const code = await socket.requestPairingCode(digits);
+    log.info('Codigo de pareamento gerado');
+    this.emitStatus(this.status());
+    return code;
+  }
+
+  /** Reinicia o socket mantendo as credenciais salvas em disco. */
+  private async restartSession(): Promise<void> {
+    this.stopped = true;
+    try {
+      this.sock?.end(undefined);
+    } catch {
+      // ignora
+    }
+    this.sock = null;
+    this.starting = false;
+    this.stopped = false;
+    this.state = 'connecting';
+    this.emitStatus(this.status());
+    await this.start();
+  }
+
   async send(to: string, content: OutboundContent): Promise<SendResult> {
     if (!this.sock) throw new Error('WhatsApp nao esta conectado');
 

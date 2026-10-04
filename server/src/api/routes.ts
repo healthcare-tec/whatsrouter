@@ -8,8 +8,10 @@ import {
   MAIL_PRESETS,
   SECRET_KEYS,
   SETTING_DEFAULTS,
+  TRANSCRIPTION_PRESETS,
   allSettings,
   applyMailPreset,
+  applyTranscriptionPreset,
   getConfig,
   settingsForPanel,
   setSettings
@@ -17,7 +19,8 @@ import {
 import { sendTestEmail, verifySmtp } from '../mail/sender.js';
 import { verifyImap } from '../mail/reader.js';
 import { mediaUsage } from '../media/store.js';
-import { resolveDriver } from '../media/transcribe.js';
+import { checkTranscriptionService, describeDriver, resolveDriver } from '../media/transcribe.js';
+import { listenInfo, listenWarnings } from '../net/addresses.js';
 import {
   countPendingMessages,
   dashboardStats,
@@ -51,10 +54,31 @@ export interface RoutesContext {
   mailReload: () => Promise<void>;
   flushConversation: (id: number) => Promise<boolean>;
   simulateInbound: (payload: Record<string, unknown>) => void;
+  /** Endereco em que o servidor esta escutando neste momento. */
+  runningServer: () => { host: string; port: number };
+  /** Encerra o processo para o supervisor (Docker/systemd) subir de novo. */
+  restartServer: () => void;
 }
 
 function body<T = Record<string, unknown>>(req: Request): T {
   return (req.body ?? {}) as T;
+}
+
+/**
+ * A API recebe `media.base64`; o provedor mock trabalha com Buffer. Assim o
+ * modo demonstracao tambem exercita anexos e transcricao.
+ */
+function decodeSimulatedMedia(payload: Record<string, unknown>): Record<string, unknown> {
+  const media = payload.media as { base64?: string; mimeType?: string; fileName?: string } | undefined;
+  if (!media || typeof media.base64 !== 'string' || media.base64.length === 0) return payload;
+  return {
+    ...payload,
+    media: {
+      mimeType: media.mimeType,
+      fileName: media.fileName,
+      data: Buffer.from(media.base64, 'base64')
+    }
+  };
 }
 
 export function createRoutes(ctx: RoutesContext): Router {
@@ -130,7 +154,11 @@ export function createRoutes(ctx: RoutesContext): Router {
       secrets: [...SECRET_KEYS],
       mailPresets: MAIL_PRESETS,
       mailPresetNames: Object.keys(MAIL_PRESETS),
+      transcriptionPresets: TRANSCRIPTION_PRESETS,
+      transcriptionPresetNames: Object.keys(TRANSCRIPTION_PRESETS),
       transcriptionDriver: resolveDriver(getConfig()),
+      transcriptionDriverLabel: describeDriver(resolveDriver(getConfig())),
+      server: { ...listenInfo(), warnings: listenWarnings(listenInfo()) },
       envProvider: env.WHATSAPP_PROVIDER
     });
   });
@@ -155,6 +183,23 @@ export function createRoutes(ctx: RoutesContext): Router {
     }
     await ctx.reloadEverything();
     res.json({ ok: true });
+  });
+
+  router.post('/settings/preset-transcription', requireAuth, async (req, res) => {
+    const { name } = body<{ name?: string }>(req);
+    if (!name || !applyTranscriptionPreset(name)) {
+      res.status(400).json({ error: 'preset de transcricao desconhecido' });
+      return;
+    }
+    await ctx.reloadEverything();
+    logEvent('info', 'settings_changed', `Preset de transcricao aplicado: ${name}`);
+    res.json({ ok: true });
+  });
+
+  /** Testa o caminho de transcricao configurado (servico local ou nuvem). */
+  router.post('/settings/test-transcription', requireAuth, async (_req, res) => {
+    const result = await checkTranscriptionService(getConfig());
+    res.json({ ...result, label: describeDriver(result.driver) });
   });
 
   router.post('/settings/test-email', requireAuth, async (req, res) => {
@@ -211,13 +256,87 @@ export function createRoutes(ctx: RoutesContext): Router {
     res.json({ ok: true, provider: ctx.providerStatus() });
   });
 
+  /**
+   * Gera um QR Code novo para a primeira conexao (Baileys). Util quando o QR
+   * anterior expirou ou quando o provedor acabou de ser ligado.
+   */
+  router.post('/provider/qr', requireAuth, async (_req, res) => {
+    const provider = ctx.currentProvider() as
+      | { name?: string; requestQr?: () => Promise<unknown> }
+      | null;
+    if (!provider?.requestQr) {
+      res.status(400).json({
+        error: `o provedor ativo (${provider?.name ?? 'nenhum'}) nao gera QR Code`
+      });
+      return;
+    }
+    try {
+      await provider.requestQr();
+      logEvent('info', 'provider_qr', 'QR Code solicitado pelo painel');
+      res.json({ ok: true, provider: ctx.providerStatus() });
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  /** Codigo de pareamento por telefone: alternativa ao QR Code. */
+  router.post('/provider/pairing-code', requireAuth, async (req, res) => {
+    const { phone } = body<{ phone?: string }>(req);
+    const provider = ctx.currentProvider() as
+      | { name?: string; pairingCode?: (value: string) => Promise<string> }
+      | null;
+    if (!provider?.pairingCode) {
+      res.status(400).json({
+        error: `o provedor ativo (${provider?.name ?? 'nenhum'}) nao gera codigo de pareamento`
+      });
+      return;
+    }
+    if (!phone) {
+      res.status(400).json({ error: 'informe o telefone com DDI e DDD, por exemplo 5511999999999' });
+      return;
+    }
+    try {
+      const code = await provider.pairingCode(phone);
+      logEvent('info', 'provider_pairing_code', 'Codigo de pareamento gerado pelo painel');
+      res.json({ ok: true, code });
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  /* ------------------------------------------------------------------ */
+  /* Rede e acesso                                                       */
+  /* ------------------------------------------------------------------ */
+
+  /** Endereco efetivo de escuta, URLs uteis e avisos de seguranca. */
+  router.get('/server/addresses', requireAuth, (_req, res) => {
+    const info = listenInfo();
+    const running = ctx.runningServer();
+    res.json({
+      ...info,
+      warnings: listenWarnings(info),
+      running,
+      pendingRestart: info.host !== running.host || info.port !== running.port
+    });
+  });
+
+  /**
+   * Reinicia o processo para aplicar o novo endereco/porta. Depende de um
+   * supervisor (o `docker-compose.yml` do projeto usa `restart: unless-stopped`).
+   */
+  router.post('/server/restart', requireAuth, (_req, res) => {
+    logEvent('warn', 'server_restart', 'Reinicio do servidor solicitado pelo painel');
+    res.json({ ok: true });
+    setTimeout(() => ctx.restartServer(), 300);
+  });
+
   /** Simula uma mensagem recebida (apenas com o provedor mock). */
   router.post('/provider/simulate', requireAuth, (req, res) => {
     if (!(ctx.currentProvider() instanceof MockProvider)) {
       res.status(400).json({ error: 'disponivel apenas com o provedor mock' });
       return;
     }
-    ctx.simulateInbound(body(req));
+    ctx.simulateInbound(decodeSimulatedMedia(body(req)));
     res.json({ ok: true });
   });
 

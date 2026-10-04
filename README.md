@@ -8,7 +8,7 @@
 
 **Centralizador de mensagens entre WhatsApp e e-mail.** As mensagens que chegam no seu WhatsApp são consolidadas e enviadas para o seu e-mail; você responde o e-mail e a resposta volta como mensagem no WhatsApp — mantendo uma conversa por contato.
 
-[English version](README.en.md) · [Perguntas frequentes](docs/FAQ.md) · [Requisitos](docs/REQUIREMENTS.md) · [Arquitetura](docs/ARCHITECTURE.md) · [Configuração](docs/CONFIGURATION.md) · [Implantação](docs/DEPLOYMENT.md) · [Provedores](docs/PROVIDERS.md) · [Roadmap](docs/ROADMAP.md)
+[English version](README.en.md) · [Perguntas frequentes](docs/FAQ.md) · [Requisitos](docs/REQUIREMENTS.md) · [Arquitetura](docs/ARCHITECTURE.md) · [Configuração](docs/CONFIGURATION.md) · [Transcrição](docs/TRANSCRIPTION.md) · [Implantação](docs/DEPLOYMENT.md) · [Provedores](docs/PROVIDERS.md) · [Roadmap](docs/ROADMAP.md)
 
 > **Procurando por:** encaminhar WhatsApp para e-mail, responder WhatsApp por e-mail, ponte WhatsApp ↔ e-mail, gateway de mensagens auto-hospedado, alternativa sem custo por mensagem — este projeto existe para isso.
 
@@ -29,7 +29,9 @@
 3. **Envia um e-mail por contato** para o e-mail do proprietário, com as mensagens novas, o contexto recente e as **mídias anexadas** (áudios são **transcritos**).
 4. **Recebe a sua resposta por e-mail** e a envia como mensagem no WhatsApp, no mesmo fio de conversa daquele contato.
 5. **Pausa sozinho** quando você assume a conversa: se você responder pelo celular, o sistema para de enviar e-mails daquela conversa por 30 minutos (configurável), acumulando o que chegar — e envia tudo rotulado como "mensagens durante a pausa" quando você retomar.
-6. Tem um **painel web** para configurar a mensagem automática, o e-mail do sistema, o e-mail do proprietário, as janelas, a transcrição, bloqueios e as pausas.
+6. Tem um **painel web** para configurar a mensagem automática, o e-mail do sistema, o e-mail do proprietário, as janelas, a transcrição, bloqueios, as pausas e **em que endereço o sistema escuta** (`0.0.0.0`, o IP da sua rede como `192.168.0.1` ou `127.0.0.1`).
+7. Gera o **QR Code sob demanda** (e também um **código de pareamento de 8 dígitos**, para quem está sem câmera) para conectar o WhatsApp direto do painel.
+8. Transcreve áudios por **três caminhos**: serviço local na própria máquina (nada sai do seu servidor), API na nuvem ou comando local — veja [docs/TRANSCRIPTION.md](docs/TRANSCRIPTION.md).
 
 ## Como o fluxo funciona
 
@@ -59,7 +61,9 @@ Abra `http://localhost:3000`, entre com `admin` / `whatsrouter` (ou o que você 
 
 1. **Configurações → E-mail do sistema**: informe o endereço dedicado do sistema, o domínio usado no `Reply-To` e as credenciais SMTP/IMAP. Há botões de teste de envio e de leitura.
 2. **Configurações → Proprietário**: informe o seu e-mail, que receberá as notificações.
-3. **Status**: leia o QR Code com o WhatsApp do número que será usado.
+3. **Status → Gerar QR Code**: leia o código com o WhatsApp do número que será usado. Sem câmera à mão, use o *código de pareamento* de 8 dígitos.
+4. **Configurações → Rede e acesso**: escolha o endereço de escuta (por padrão `0.0.0.0`, aceitando acesso de outros aparelhos da rede) e confira os endereços detectados.
+5. **Configurações → Mídia e transcrição**: escolha o motor de transcrição. O preset **Serviço local (faster-whisper)** roda na sua máquina, sem enviar áudio para fora.
 
 > **Sobre o número:** o projeto foi pensado para rodar no **seu número pessoal**, com pausa automática quando você assume a conversa. Se puder, use um número dedicado: o Baileys usa o protocolo do WhatsApp Web (não oficial) e há risco de bloqueio — veja [avisos](#avisos).
 
@@ -111,6 +115,20 @@ node scripts/dev-smtp.mjs 2525 ./data/smtp-inbox
 # no painel: SMTP host 127.0.0.1, porta 2525, sem SSL
 ```
 
+Para testar a transcrição sem baixar um modelo de verdade:
+
+```bash
+node scripts/dev-transcribe.mjs 9000
+# no painel: Mídia e transcrição → Serviço local → http://127.0.0.1:9000/v1
+```
+
+Para usar a transcrição local de verdade (faster-whisper, nada sai da máquina):
+
+```bash
+bash scripts/install-transcription.sh          # Docker, modelo small, porta 9000
+docker compose --profile transcricao up -d     # alternativa pelo docker-compose
+```
+
 ## Comandos pelo WhatsApp
 
 Se você enviar estes comandos no WhatsApp (na conversa com o contato ou na conversa consigo mesmo), o sistema obedece:
@@ -132,7 +150,7 @@ Se você enviar estes comandos no WhatsApp (na conversa com o contato ou na conv
 | `web/` | Painel em React + Vite + Tailwind |
 | `docs/` | Requisitos, arquitetura, configuração, implantação, provedores e roadmap |
 | `docs/ci/github-actions.yml` | Pipeline de CI pronto: copie para `.github/workflows/ci.yml` para ativar |
-| `scripts/` | Servidor SMTP de desenvolvimento e teste de fumaça ponta a ponta |
+| `scripts/` | Servidor SMTP e serviço de transcrição de desenvolvimento, instalador do serviço local e teste de fumaça ponta a ponta |
 | `server/drizzle/` | Migrações do banco SQLite |
 
 ## Avisos
@@ -140,7 +158,8 @@ Se você enviar estes comandos no WhatsApp (na conversa com o contato ou na conv
 - O provedor **Baileys** usa o protocolo do WhatsApp Web, que **não é oficial**. Usar um número pessoal tem risco de bloqueio; o projeto assume esse risco de forma explícita e recomenda um número dedicado.
 - A camada de provedor é plugável: existe um provedor **webhook**, pensado para integração com o **n8n** (ou com a Cloud API oficial da Meta) sem alterar o restante do sistema. Veja [docs/PROVIDERS.md](docs/PROVIDERS.md).
 - As credenciais de SMTP/IMAP e as sessões do WhatsApp ficam no volume `whatsrouter-data`. Proteja e faça backup dessa pasta; quem tiver acesso a ela tem acesso à sua conta.
-- Se a transcrição de áudio estiver habilitada com um provedor de nuvem, os arquivos de áudio são enviados para esse provedor. Dá para usar um comando local (por exemplo `whisper.cpp`) e nada sair da sua máquina.
+- Se a transcrição de áudio usar um provedor de nuvem, os arquivos de áudio são enviados para esse provedor. Para não enviar nada para fora, use o **serviço local** (recomendado) ou um comando local como `whisper.cpp` — veja [docs/TRANSCRIPTION.md](docs/TRANSCRIPTION.md).
+- O painel aceita conexões de outras máquinas por padrão (`0.0.0.0`). Se o servidor estiver exposto na internet, coloque HTTPS na frente e troque a senha inicial; para liberar só a própria máquina, ajuste o endereço de escuta em **Configurações → Rede e acesso**.
 
 ## Contribuindo
 

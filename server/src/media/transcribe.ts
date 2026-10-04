@@ -9,23 +9,56 @@ import type { AppConfig } from '../settings/service.js';
 
 const execFileAsync = promisify(execFile);
 
-export type TranscriptionDriver = 'openai' | 'command' | 'none';
+/**
+ * Caminhos possiveis de transcricao:
+ * - `service`: servidor local compativel com OpenAI (faster-whisper-server,
+ *   whisper.cpp server). Nada sai da maquina e nao exige comando externo.
+ * - `openai`: API compativel com OpenAI na nuvem (OpenAI, Groq, ...).
+ * - `command`: binario local (por exemplo whisper.cpp).
+ * - `none`: audios seguem apenas como anexo.
+ */
+export type TranscriptionDriver = 'service' | 'openai' | 'command' | 'none';
+
+/** Endereco sugerido do servico local (o mesmo dos scripts do repositorio). */
+export const DEFAULT_SERVICE_URL = 'http://127.0.0.1:9000/v1';
+
+export function serviceBaseUrl(config: AppConfig): string {
+  return (config.transcription.serviceUrl ?? '').trim().replace(/\/+$/, '');
+}
 
 /** Define qual driver sera usado considerando configuracao e ambiente. */
 export function resolveDriver(config: AppConfig): TranscriptionDriver {
   if (!config.transcription.enabled) return 'none';
+
   const configured = config.transcription.provider;
+  const hasService = Boolean(serviceBaseUrl(config));
   const hasApiKey = Boolean(config.transcription.apiKey || env.OPENAI_API_KEY);
-  const hasCommand = Boolean(config.transcription.command);
+  const hasCommand = Boolean(config.transcription.command.trim());
 
   if (configured === 'none') return 'none';
-  if (configured === 'openai') return hasApiKey ? 'openai' : 'none';
+  if (configured === 'service') return hasService ? 'service' : 'none';
+  if (configured === 'openai') return hasApiKey || Boolean(config.transcription.baseUrl) ? 'openai' : 'none';
   if (configured === 'command') return hasCommand ? 'command' : 'none';
 
-  // auto
+  // auto: servico local -> API na nuvem -> comando local
+  if (hasService) return 'service';
   if (hasApiKey) return 'openai';
   if (hasCommand) return 'command';
   return 'none';
+}
+
+/** Texto amigavel usado no painel e nos logs. */
+export function describeDriver(driver: TranscriptionDriver): string {
+  switch (driver) {
+    case 'service':
+      return 'servico local';
+    case 'openai':
+      return 'API na nuvem';
+    case 'command':
+      return 'comando local';
+    default:
+      return 'desligada';
+  }
 }
 
 /**
@@ -38,7 +71,16 @@ export async function transcribeAudio(filePath: string, config: AppConfig): Prom
   if (!fs.existsSync(filePath)) return null;
 
   try {
-    if (driver === 'openai') return await transcribeWithApi(filePath, config);
+    if (driver === 'service') {
+      return await transcribeWithHttp(filePath, config, serviceBaseUrl(config), '');
+    }
+    if (driver === 'openai') {
+      const baseUrl = (config.transcription.baseUrl || env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(
+        /\/+$/,
+        ''
+      );
+      return await transcribeWithHttp(filePath, config, baseUrl, config.transcription.apiKey || env.OPENAI_API_KEY);
+    }
     return await transcribeWithCommand(filePath, config);
   } catch (error) {
     log.warn('Falha na transcricao do audio', {
@@ -49,16 +91,16 @@ export async function transcribeAudio(filePath: string, config: AppConfig): Prom
 }
 
 /**
- * Usa uma API compativel com OpenAI (`/audio/transcriptions`). Serve para a
- * OpenAI, Groq, ou qualquer servidor local compativel (whisper.cpp server).
+ * Envia o audio para um endpoint `/audio/transcriptions` compativel com a API
+ * da OpenAI. Serve tanto para a nuvem quanto para o servico local.
  */
-async function transcribeWithApi(filePath: string, config: AppConfig): Promise<string | null> {
-  const apiKey = config.transcription.apiKey || env.OPENAI_API_KEY;
-  const baseUrl = (config.transcription.baseUrl || env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(
-    /\/+$/,
-    ''
-  );
-  if (!apiKey && !config.transcription.baseUrl) return null;
+async function transcribeWithHttp(
+  filePath: string,
+  config: AppConfig,
+  baseUrl: string,
+  apiKey: string
+): Promise<string | null> {
+  if (!baseUrl) return null;
 
   const buffer = fs.readFileSync(filePath);
   const form = new FormData();
@@ -103,4 +145,48 @@ async function transcribeWithCommand(filePath: string, config: AppConfig): Promi
   const text = fs.readFileSync(textFile, 'utf8').trim();
   fs.unlinkSync(textFile);
   return text || null;
+}
+
+export interface ServiceCheck {
+  ok: boolean;
+  driver: TranscriptionDriver;
+  url: string;
+  detail?: string;
+  models?: string[];
+}
+
+/**
+ * Verifica se o servico local (ou a API configurada) responde. Usado pelo
+ * botao de teste do painel: consulta `GET {base}/models` com tempo limite.
+ */
+export async function checkTranscriptionService(config: AppConfig): Promise<ServiceCheck> {
+  const driver = resolveDriver(config);
+  const url = driver === 'service' ? serviceBaseUrl(config) : config.transcription.baseUrl.replace(/\/+$/, '');
+
+  if (!url) {
+    return { ok: false, driver, url, detail: 'nenhum endereco configurado' };
+  }
+
+  const apiKey =
+    driver === 'service' ? '' : config.transcription.apiKey || env.OPENAI_API_KEY;
+
+  try {
+    const response = await fetch(`${url}/models`, {
+      method: 'GET',
+      headers: apiKey ? { authorization: `Bearer ${apiKey}` } : {},
+      signal: AbortSignal.timeout(8000)
+    });
+    if (!response.ok) {
+      return { ok: false, driver, url, detail: `HTTP ${response.status}` };
+    }
+    const body = (await response.json().catch(() => ({}))) as { data?: { id?: string }[] };
+    return { ok: true, driver, url, models: (body.data ?? []).map((item) => item.id ?? '').filter(Boolean) };
+  } catch (error) {
+    return {
+      ok: false,
+      driver,
+      url,
+      detail: error instanceof Error ? error.message : String(error)
+    };
+  }
 }

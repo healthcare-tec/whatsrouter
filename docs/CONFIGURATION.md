@@ -29,13 +29,16 @@ A janela funciona como *debounce*: cada mensagem nova reinicia a contagem. `0` s
 |---|---|---|
 | `attachments.max_mb` | `20` | Limite por anexo. Acima disso, o arquivo não vai no e-mail (continua salvo em `data/media`). |
 | `transcription.enabled` | `true` | Liga a transcrição de áudios. |
-| `transcription.provider` | `auto` | `auto`, `openai`, `command` ou `none`. |
+| `transcription.provider` | `auto` | `auto`, `service` (serviço local), `openai` (nuvem), `command` (binário local) ou `none`. |
 | `transcription.model` | `whisper-1` | Modelo usado na API. |
 | `transcription.api_key` | vazio | Chave da API compatível com OpenAI. |
 | `transcription.base_url` | vazio | URL base (para Groq, servidor local compatível etc.). |
+| `transcription.service_url` | vazio | Endereço do serviço local compatível com a API da OpenAI (ex.: `http://127.0.0.1:9000/v1`; dentro do Docker, `http://whisper:8000/v1`). |
 | `transcription.command` | vazio | Comando local. Ex.: `whisper-cli -f {file} -otxt -of {out}`. |
 
-Com `provider = auto`, o sistema usa a API quando existe chave (`transcription.api_key` ou `OPENAI_API_KEY`) e, na falta dela, o comando local. Sem nenhum dos dois, o áudio é apenas anexado.
+Com `provider = auto`, a ordem de preferência é: **serviço local** (`transcription.service_url`) → **API na nuvem** (chave em `transcription.api_key` ou `OPENAI_API_KEY`) → **comando local**. Sem nenhum caminho configurado, o áudio é apenas anexado.
+
+O painel traz presets prontos (**Serviço local (faster-whisper)**, **Serviço local (no Docker)**, **OpenAI (nuvem)** e **Comando local (whisper.cpp)**) e o botão **Testar transcrição**, que consulta o serviço e lista os modelos disponíveis. Guia completo em [TRANSCRIPTION.md](TRANSCRIPTION.md).
 
 ## E-mail do sistema
 
@@ -105,6 +108,8 @@ Com `provider = auto`, o sistema usa a API quando existe chave (`transcription.a
 | Variável | Padrão | Descrição |
 |---|---|---|
 | `PORT` | `3000` | Porta do painel e da API. |
+| `HOST` | `0.0.0.0` | Endereço de escuta: `0.0.0.0`, `127.0.0.1` ou o IP da máquina na rede (ex.: `192.168.0.1`). |
+| `PUBLIC_URL` | vazio | Endereço público exibido no painel (ex.: `https://router.seudominio.com`). |
 | `DATA_DIR` | `./data` | Onde ficam banco, mídias e sessão do WhatsApp. |
 | `DATABASE_PATH` | `./data/whatsrouter.sqlite` | Caminho do banco SQLite. |
 | `SESSION_SECRET` | valor de desenvolvimento | Segredo das sessões do painel. |
@@ -115,3 +120,18 @@ Com `provider = auto`, o sistema usa a API quando existe chave (`transcription.a
 | `WEBHOOK_TOKEN` | vazio | Token alternativo para o webhook de entrada. |
 | `OPENAI_API_KEY` | vazio | Chave usada pela transcrição. |
 | `OPENAI_BASE_URL` | vazio | URL base alternativa para a transcrição. |
+
+As variáveis `WHISPER_PORT` e `WHISPER_MODEL` são lidas pelo instalador do serviço local de transcrição (`scripts/install-transcription.sh`) e pelo perfil `transcricao` do `docker-compose.yml`.
+## Rede e acesso
+
+| Chave | Padrão | Descrição |
+|---|---|---|
+| `server.host` | vazio | Endereço de escuta. Vazio usa `HOST` do ambiente (`0.0.0.0`). Exemplos: `0.0.0.0` (todas as interfaces), `192.168.0.1` (uma interface da rede local), `127.0.0.1` (somente esta máquina). |
+| `server.port` | vazio | Porta do painel e da API. Vazio usa `PORT` do ambiente. |
+| `server.public_url` | vazio | Endereço externo (ex.: `https://router.seudominio.com`), exibido no painel e usado como referência nos avisos. |
+
+Mudanças de endereço/porta valem depois de reiniciar o processo. O painel mostra o endereço em uso, avisa quando existe alteração pendente e oferece o botão **Reiniciar servidor** — que funciona quando há um supervisor (o `docker-compose.yml` do projeto já usa `restart: unless-stopped`; com systemd ou pm2 o comportamento é o mesmo).
+
+O painel também lista os endereços detectados (localhost e IPs da rede local) e mostra avisos de segurança, por exemplo quando a escuta está aberta em todas as interfaces sem HTTPS.
+
+## Aviso de modo automático

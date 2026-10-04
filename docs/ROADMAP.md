@@ -16,7 +16,7 @@ O escopo do MVP está descrito em [REQUIREMENTS.md](REQUIREMENTS.md). Esta é a 
 
 1. **Provedor n8n pronto para uso**: um fluxo de exemplo exportável, com o passo a passo publicado no repositório.
 2. **Provedor da Cloud API oficial da Meta** usando a mesma interface do provedor webhook.
-3. **Transcrição local documentada**: receita com `whisper.cpp` e imagem Docker opcional, para não enviar áudio a nenhum serviço externo.
+3. **Transcrição acelerada por GPU e idioma por contato**: usar GPU no serviço local e fixar o idioma do áudio em contatos específicos.
 4. **Resumo diário**: e-mail opcional com o panorama do dia (contatos, mensagens, pendências).
 
 ## Depois
@@ -34,3 +34,10 @@ O escopo do MVP está descrito em [REQUIREMENTS.md](REQUIREMENTS.md). Esta é a 
 - Modo "plantão": escalonamento quando o proprietário não responde em X horas.
 - App móvel ou PWA para acompanhar a fila quando não houver acesso ao e-mail.
 - Suporte a OAuth2 (Gmail/Microsoft) para contas que não aceitam senha de aplicativo.
+## Concluído (0.2.0)
+
+- **Rede e acesso** no painel: endereço de escuta configurável (`0.0.0.0`, IP da rede ou `127.0.0.1`), endereços detectados e botão de reinício.
+- **Gerar QR Code** sob demanda e **código de pareamento** de 8 dígitos para a primeira conexão.
+- **Serviço local de transcrição** com instalação em um comando, imagem Docker opcional e teste pelo painel ([TRANSCRIPTION.md](TRANSCRIPTION.md)).
+
+## Próximo

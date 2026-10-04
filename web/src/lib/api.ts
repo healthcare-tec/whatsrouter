@@ -72,6 +72,20 @@ export interface EventRow {
   createdAt: string;
 }
 
+export interface ServerAddresses {
+  host: string;
+  port: number;
+  source: 'painel' | 'ambiente';
+  exposedToNetwork: boolean;
+  publicUrl: string;
+  urls: { label: string; url: string }[];
+  localIps: string[];
+  hostOptions: string[];
+  warnings: string[];
+  running: { host: string; port: number };
+  pendingRestart: boolean;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api${path}`, {
     credentials: 'same-origin',
@@ -106,13 +120,24 @@ export const api = {
       secrets: string[];
       mailPresets: Record<string, Record<string, string>>;
       mailPresetNames: string[];
+      transcriptionPresets: Record<string, Record<string, string>>;
+      transcriptionPresetNames: string[];
       transcriptionDriver: string;
+      transcriptionDriverLabel: string;
+      server: ServerAddresses;
       envProvider: string;
     }>('/settings'),
   saveSettings: (values: Record<string, unknown>) =>
     request<{ ok: boolean; changed: string[] }>('/settings', { method: 'PUT', body: JSON.stringify({ values }) }),
   applyPreset: (name: string) =>
     request<{ ok: boolean }>('/settings/preset', { method: 'POST', body: JSON.stringify({ name }) }),
+  applyTranscriptionPreset: (name: string) =>
+    request<{ ok: boolean }>('/settings/preset-transcription', { method: 'POST', body: JSON.stringify({ name }) }),
+  testTranscription: () =>
+    request<{ ok: boolean; driver: string; label: string; url: string; detail?: string; models?: string[] }>(
+      '/settings/test-transcription',
+      { method: 'POST' }
+    ),
   testEmail: (to?: string) =>
     request<{ ok: boolean; to?: string; error?: string }>('/settings/test-email', {
       method: 'POST',
@@ -123,8 +148,17 @@ export const api = {
 
   restartProvider: () => request<{ ok: boolean }>('/provider/restart', { method: 'POST' }),
   logoutProvider: () => request<{ ok: boolean }>('/provider/logout', { method: 'POST' }),
+  requestQr: () => request<{ ok: boolean }>('/provider/qr', { method: 'POST' }),
+  pairingCode: (phone: string) =>
+    request<{ ok: boolean; code: string }>('/provider/pairing-code', {
+      method: 'POST',
+      body: JSON.stringify({ phone })
+    }),
   simulate: (payload: Record<string, unknown>) =>
     request<{ ok: boolean }>('/provider/simulate', { method: 'POST', body: JSON.stringify(payload) }),
+
+  serverAddresses: () => request<ServerAddresses>('/server/addresses'),
+  restartServer: () => request<{ ok: boolean }>('/server/restart', { method: 'POST' }),
 
   conversations: (search?: string) =>
     request<{ conversations: Conversation[] }>(`/conversations${search ? `?search=${encodeURIComponent(search)}` : ''}`),

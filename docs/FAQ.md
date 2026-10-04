@@ -26,11 +26,17 @@ Respostas curtas para as dúvidas mais comuns — e para os termos que as pessoa
 
 **Quais provedores de e-mail funcionam?** Qualquer um com SMTP e IMAP. Há presets para mail.org/mail.com, Gmail/Google Workspace, Microsoft 365/Outlook e Zoho Mail (nessas duas últimas, use senha de aplicativo).
 
+**Como conecto o WhatsApp na primeira vez?** Em **Status**, clique em **Gerar QR Code** e leia o código com o WhatsApp (Aparelhos conectados). Sem câmera à mão, informe o número com DDI e DDD e use o **código de pareamento** de 8 dígitos. Se a sessão cair, o sistema reconecta sozinho; se você desconectar no celular, é só gerar um QR novo.
+
+**Consigo abrir o painel de outro aparelho da minha rede?** Sim. Em **Configurações → Rede e acesso**, escolha o endereço de escuta: `0.0.0.0` (todos os aparelhos, padrão), o IP da máquina (por exemplo `192.168.0.1`) ou `127.0.0.1` (só esta máquina). O painel mostra os endereços detectados, avisa sobre exposição sem HTTPS e tem o botão **Reiniciar servidor** para aplicar a mudança.
+
 ## Sobre privacidade e segurança
 
 **Para onde vão meus dados?** Ficam todos na sua instalação: banco SQLite, mídias em disco e a sessão do WhatsApp em um volume local. O único destino externo é o seu próprio e-mail.
 
-**A transcrição de áudio envia meus áudios para fora?** Só se você escolher um provedor de nuvem. Também é possível configurar um comando local (por exemplo `whisper-cli -f {file} -otxt -of {out}`) e nada sai da máquina.
+**A transcrição de áudio envia meus áudios para fora?** Só se você escolher um provedor de nuvem. O caminho recomendado é o **serviço local**: rode `bash scripts/install-transcription.sh`, escolha o preset *Serviço local (faster-whisper)* no painel e nada sai da máquina. Também dá para usar um comando local (por exemplo `whisper-cli -f {file} -otxt -of {out}`). Detalhes em [TRANSCRIPTION.md](TRANSCRIPTION.md).
+
+**Quanto tempo leva para instalar a transcrição local?** Um comando, se você já tem Docker: `bash scripts/install-transcription.sh` (modelo `small`, porta 9000). A primeira execução baixa o modelo; depois fica em cache. Sem Docker, há uma receita com Python no [TRANSCRIPTION.md](TRANSCRIPTION.md).
 
 **Como faço backup?** Copie o volume `whatsrouter-data` (ou a pasta `data/`): ele contém o banco, as mídias e a sessão do WhatsApp. O passo a passo está em [DEPLOYMENT.md](DEPLOYMENT.md).
 
@@ -46,4 +52,4 @@ Respostas curtas para as dúvidas mais comuns — e para os termos que as pessoa
 
 **E se a sessão do WhatsApp cair?** O sistema tenta reconectar sozinho. Se a sessão for encerrada no celular, basta ler novamente o QR Code em Status.
 
-**Como contribuir?** Veja [CONTRIBUTING.md](../CONTRIBUTING.md). Traduções da documentação para inglês, provedor da Cloud API oficial e receita de transcrição local são ótimos primeiros trabalhos.
+**Como contribuir?** Veja [CONTRIBUTING.md](../CONTRIBUTING.md). Traduções da documentação para inglês, provedor da Cloud API oficial e transcrição acelerada por GPU são ótimos primeiros trabalhos.

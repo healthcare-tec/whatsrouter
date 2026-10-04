@@ -21,6 +21,29 @@ interface Group {
 
 const GROUPS: Group[] = [
   {
+    id: 'network',
+    title: 'Rede e acesso',
+    description:
+      'Endereco em que o painel aceita conexoes. 0.0.0.0 responde em todas as interfaces (padrao, ideal para Docker e rede local); o IP da maquina (por exemplo 192.168.0.1) restringe a uma interface; 127.0.0.1 libera apenas esta maquina.',
+    fields: [
+      {
+        key: 'server.host',
+        label: 'Endereco de escuta',
+        type: 'text',
+        placeholder: '0.0.0.0',
+        hint: 'Vazio usa o valor do ambiente (padrao 0.0.0.0). Exemplos: 0.0.0.0, 192.168.0.1, 127.0.0.1.'
+      },
+      { key: 'server.port', label: 'Porta', type: 'number', placeholder: '3000', hint: 'Vazio usa a porta do ambiente.' },
+      {
+        key: 'server.public_url',
+        label: 'Endereco publico (opcional)',
+        type: 'text',
+        placeholder: 'https://router.seudominio.com',
+        hint: 'Usado nos avisos do painel e como referencia externa.'
+      }
+    ]
+  },
+  {
     id: 'auto',
     title: 'Aviso de modo automatico',
     description:
@@ -70,6 +93,7 @@ const GROUPS: Group[] = [
         type: 'select',
         options: [
           { value: 'auto', label: 'Automatico (usa o que estiver configurado)' },
+          { value: 'service', label: 'Servico local na propria maquina (recomendado)' },
           { value: 'openai', label: 'API compativel com OpenAI (nuvem)' },
           { value: 'command', label: 'Comando local (ex.: whisper.cpp)' },
           { value: 'none', label: 'Desligado' }
@@ -78,6 +102,13 @@ const GROUPS: Group[] = [
       { key: 'transcription.model', label: 'Modelo', type: 'text' },
       { key: 'transcription.api_key', label: 'Chave da API', type: 'password' },
       { key: 'transcription.base_url', label: 'URL base da API', type: 'text', placeholder: 'https://api.openai.com/v1' },
+      {
+        key: 'transcription.service_url',
+        label: 'Endereco do servico local',
+        type: 'text',
+        placeholder: 'http://127.0.0.1:9000/v1',
+        hint: 'Servidor compativel com a API da OpenAI (faster-whisper-server). Dentro do Docker use http://whisper:8000/v1.'
+      },
       {
         key: 'transcription.command',
         label: 'Comando local',
@@ -204,6 +235,8 @@ const ALL_FIELDS = GROUPS.flatMap((group) => group.fields);
 export default function Settings() {
   const [values, setValues] = useState<Record<string, string>>({});
   const [presets, setPresets] = useState<string[]>([]);
+  const [transcriptionPresets, setTranscriptionPresets] = useState<string[]>([]);
+  const [serverInfo, setServerInfo] = useState<Awaited<ReturnType<typeof api.serverAddresses>> | null>(null);
   const [driver, setDriver] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -216,7 +249,9 @@ export default function Settings() {
       const data = await api.settings();
       setValues(data.values);
       setPresets(data.mailPresetNames);
-      setDriver(data.transcriptionDriver);
+      setTranscriptionPresets(data.transcriptionPresetNames ?? []);
+      setDriver(data.transcriptionDriverLabel ?? data.transcriptionDriver);
+      setServerInfo(data.server);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao carregar configuracoes');
     }
@@ -233,6 +268,43 @@ export default function Settings() {
     for (const field of ALL_FIELDS) out[field.key] = values[field.key] ?? '';
     return out;
   }, [values]);
+
+  const testTranscription = async () => {
+    setBusy(true);
+    setError(null);
+    setFeedback(null);
+    try {
+      const result = await api.testTranscription();
+      if (result.ok) {
+        const models = result.models?.length ? ` - modelos: ${result.models.slice(0, 5).join(', ')}` : '';
+        setFeedback(`Transcricao (${result.label}) respondendo em ${result.url}${models}.`);
+      } else {
+        setError(
+          `Transcricao (${result.label}) nao respondeu em ${result.url}: ${result.detail ?? 'erro desconhecido'}`
+        );
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Teste de transcricao falhou');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const restartServer = async () => {
+    setBusy(true);
+    setError(null);
+    setFeedback(null);
+    try {
+      await api.restartServer();
+      setFeedback(
+        'Reinicio solicitado. O servidor volta em alguns segundos quando existe um supervisor (docker-compose/systemd).'
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao reiniciar');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const save = async () => {
     setBusy(true);
@@ -324,6 +396,9 @@ export default function Settings() {
           >
             Validar credenciais SMTP
           </button>
+          <button type="button" className="btn-secondary" disabled={busy} onClick={() => void testTranscription()}>
+            Testar transcricao
+          </button>
         </div>
         <p className="hint">Motor de transcricao em uso: {driver}</p>
       </section>
@@ -353,6 +428,72 @@ export default function Settings() {
                   {preset}
                 </button>
               ))}
+            </div>
+          )}
+
+          {group.id === 'media' && (
+            <div className="mb-4 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-slate-600">Configurar rapidamente:</span>
+                {transcriptionPresets.map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    className="btn-secondary"
+                    disabled={busy}
+                    onClick={() =>
+                      void runTest(async () => {
+                        await api.applyTranscriptionPreset(preset);
+                        await load();
+                        return { ok: true };
+                      }, `Preset aplicado: ${preset}.`)
+                    }
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+              <p className="hint">
+                O caminho <strong>Servico local</strong> transcreve sem enviar o audio para fora: rode{' '}
+                <code>bash scripts/install-transcription.sh</code> na maquina (ou use o servico <code>whisper</code> do
+                docker-compose) e clique em <strong>Testar transcricao</strong>. Guia completo em{' '}
+                <code>docs/TRANSCRIPTION.md</code>.
+              </p>
+            </div>
+          )}
+
+          {group.id === 'network' && serverInfo && (
+            <div className="mt-5 rounded-lg bg-slate-50 p-4 text-sm">
+              <div className="mb-2 font-medium text-slate-700">Como acessar o painel</div>
+              <ul className="space-y-1">
+                {serverInfo.urls.map((entry) => (
+                  <li key={entry.url}>
+                    <span className="text-slate-500">{entry.label}: </span>
+                    <a className="text-zap-700 underline" href={entry.url} target="_blank" rel="noreferrer">
+                      {entry.url}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-2 text-slate-600">
+                Escutando agora em{' '}
+                <strong>
+                  {serverInfo.running.host}:{serverInfo.running.port}
+                </strong>
+                {serverInfo.pendingRestart ? ' - ha alteracao salva aguardando reinicio' : ''}
+              </div>
+              {serverInfo.warnings.map((warning) => (
+                <p key={warning} className="mt-2 text-amber-700">
+                  {warning}
+                </p>
+              ))}
+              <button type="button" className="btn-secondary mt-3" disabled={busy} onClick={() => void restartServer()}>
+                Reiniciar servidor
+              </button>
+              <p className="hint">
+                O reinicio funciona quando existe um supervisor (o <code>docker-compose.yml</code> do projeto ja usa{' '}
+                <code>restart: unless-stopped</code>). Sem supervisor, suba o processo novamente.
+              </p>
             </div>
           )}
 

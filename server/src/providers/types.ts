@@ -24,6 +24,15 @@ export interface WhatsAppProvider {
   off<E extends keyof ProviderEvents>(event: E, handler: ProviderEvents[E]): void;
   /** Desconecta a sessao (quando suportado) para permitir novo pareamento. */
   logout?(): Promise<void>;
+  /**
+   * Forca a geracao de um QR Code novo para a primeira conexao (quando
+   * suportado). Usado pelo botao "Gerar QR Code" do painel.
+   */
+  requestQr?(): Promise<ProviderStatus>;
+  /**
+   * Solicita um codigo de pareamento por telefone, alternativa ao QR Code.
+   */
+  pairingCode?(phone: string): Promise<string>;
 }
 
 export abstract class BaseProvider implements WhatsAppProvider {

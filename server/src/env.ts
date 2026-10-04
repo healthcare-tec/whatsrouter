@@ -5,6 +5,15 @@ import { z } from 'zod';
 const schema = z.object({
   NODE_ENV: z.string().default('development'),
   PORT: z.coerce.number().default(3000),
+  /**
+   * Endereco de escuta. Use `0.0.0.0` para aceitar conexoes de qualquer
+   * interface (padrao, funciona em Docker e na rede local) ou um IP
+   * especifico (por exemplo `192.168.0.1` ou `127.0.0.1` para somente a
+   * propria maquina). O painel permite ajustar isso sem editar arquivos.
+   */
+  HOST: z.string().default('0.0.0.0'),
+  /** URL publica usada em avisos e no endereco de retorno (opcional). */
+  PUBLIC_URL: z.string().default(''),
   DATABASE_PATH: z.string().default('./data/whatsrouter.sqlite'),
   DATA_DIR: z.string().default('./data'),
   SESSION_SECRET: z.string().default('whatsrouter-dev-secret-change-me'),

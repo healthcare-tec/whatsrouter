@@ -24,7 +24,26 @@ services:
       - whatsrouter-data:/app/data
 
 volumes:
+  # Servico local de transcricao (opcional). Suba com:
+  #   docker compose --profile transcricao up -d
+  # e no painel use o preset "Servico local (no Docker)" -> http://whisper:8000/v1
+  whisper:
+    image: fedirz/faster-whisper-server:latest-cpu
+    container_name: whatsrouter-whisper
+    profiles: ["transcricao"]
+    restart: unless-stopped
+    ports:
+      # Exposto apenas na propria maquina: o audio nao sai do seu servidor.
+      - "127.0.0.1:${WHISPER_PORT:-9000}:8000"
+    environment:
+      WHISPER__MODEL: ${WHISPER_MODEL:-small}
+      WHISPER__INFERENCE_DEVICE: cpu
+    volumes:
+      - whisper-models:/root/.cache
+
+volumes:
   whatsrouter-data:
+  whisper-models:
 
 # Para desenvolvedores: um servidor SMTP local que apenas grava os e-mails em
 # disco, util para testar sem enviar nada de verdade:

@@ -22,6 +22,8 @@ export default function Status() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -52,6 +54,23 @@ export default function Status() {
     }
   };
 
+  const requestPairingCode = async () => {
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    setPairingCode(null);
+    try {
+      const result = await api.pairingCode(phone);
+      setPairingCode(result.code);
+      setMessage('Codigo gerado. Digite-o no celular para concluir o pareamento.');
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao gerar o codigo');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (!status) {
     return <div className="text-slate-500">Carregando status...</div>;
   }
@@ -59,6 +78,8 @@ export default function Status() {
   const provider = status.provider;
   const state = provider?.state ?? 'disconnected';
   const isMock = provider?.name === 'mock';
+  const isBaileys = provider?.name === 'baileys';
+  const connected = state === 'connected';
 
   return (
     <div className="space-y-6">
@@ -91,16 +112,40 @@ export default function Status() {
           ) : null}
           {provider?.lastError && <p className="mt-2 text-sm text-rose-600">{provider.lastError}</p>}
 
-          {provider?.qrDataUrl && (
+          {provider?.qrDataUrl ? (
             <div className="mt-4 rounded-lg border border-dashed border-slate-300 p-4 text-center">
               <p className="mb-2 text-sm text-slate-600">
                 Abra o WhatsApp no celular, toque em <strong>Aparelhos conectados</strong> e leia o codigo:
               </p>
               <img src={provider.qrDataUrl} alt="QR Code do WhatsApp" className="mx-auto h-64 w-64" />
+              <p className="hint mt-2">O codigo expira em alguns minutos; gere outro se precisar.</p>
             </div>
+          ) : (
+            !connected && (
+              <div className="mt-4 rounded-lg border border-dashed border-slate-300 p-4 text-center">
+                <p className="text-sm text-slate-600">
+                  Nenhum QR Code ativo no momento. Clique em <strong>Gerar QR Code</strong> para iniciar o pareamento.
+                </p>
+              </div>
+            )
           )}
 
           <div className="mt-4 flex flex-wrap gap-2">
+            {!connected && (
+              <button
+                type="button"
+                className="btn-primary"
+                disabled={busy}
+                onClick={() =>
+                  void run(
+                    () => api.requestQr(),
+                    'QR Code solicitado. Aguarde alguns segundos e leia o codigo com o WhatsApp.'
+                  )
+                }
+              >
+                Gerar QR Code
+              </button>
+            )}
             <button
               type="button"
               className="btn-secondary"
@@ -113,11 +158,48 @@ export default function Status() {
               type="button"
               className="btn-danger"
               disabled={busy}
-              onClick={() => void run(() => api.logoutProvider(), 'Sessao encerrada. Leia o QR Code novamente.')}
+              onClick={() =>
+                void run(async () => {
+                  setPairingCode(null);
+                  await api.logoutProvider();
+                }, 'Sessao encerrada. Gere um novo QR Code para parear de novo.')
+              }
             >
               Desconectar sessao
             </button>
           </div>
+
+          {isBaileys && !connected && (
+            <div className="mt-4 rounded-lg bg-slate-50 p-3">
+              <div className="mb-1 text-sm font-medium text-slate-700">Pareamento por codigo (sem camera)</div>
+              <p className="hint mb-2">
+                Informe o numero do WhatsApp com DDI e DDD. No celular, abra <strong>Aparelhos conectados</strong> →
+                <strong> Conectar com numero de telefone</strong> e digite o codigo gerado.
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  className="input w-56"
+                  placeholder="5511999999999"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                />
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  disabled={busy || phone.replace(/\D/g, '').length < 10}
+                  onClick={() => void requestPairingCode()}
+                >
+                  Gerar codigo de pareamento
+                </button>
+              </div>
+              {pairingCode && (
+                <div className="mt-3 rounded-lg border border-zap-200 bg-white px-4 py-3 text-center">
+                  <div className="text-xs uppercase tracking-wide text-slate-500">Codigo de pareamento</div>
+                  <div className="text-2xl font-semibold tracking-[0.3em] text-zap-800">{pairingCode}</div>
+                </div>
+              )}
+            </div>
+          )}
 
           {isMock && (
             <div className="mt-4 rounded-lg bg-slate-50 p-3">

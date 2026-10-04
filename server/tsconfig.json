@@ -6,7 +6,6 @@
     "lib": ["ES2023"],
     "types": ["node"],
     "outDir": "dist",
-    "rootDir": "src",
     "strict": true,
     "noUncheckedIndexedAccess": false,
     "esModuleInterop": true,
@@ -18,5 +17,6 @@
     "declaration": false
   },
   "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "test/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }
